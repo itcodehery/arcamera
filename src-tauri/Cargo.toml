@@ -1,0 +1,23 @@
+[package]
+name = "arcamera"
+version = "0.1.0"
+description = "A Tauri App"
+authors = ["you"]
+edition = "2021"
+build = "build.rs"
+
+[build-dependencies]
+tauri-build = "2.0.0"
+
+[dependencies]
+tauri = { version = "2.0.0", features = [] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+base64 = "0.22"
+chrono = "0.4"
+nokhwa = { version = "0.10.11", features = ["input-native"] }
+image = "0.25.10"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]

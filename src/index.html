@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arcamera</title>
+    <!-- Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Top App Bar -->
+        <header class="top-app-bar">
+            <h1 class="title">Arcamera</h1>
+            <div class="actions">
+                <button class="icon-button" id="settings-btn">
+                    <span class="material-symbols-outlined">settings</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Camera View -->
+        <main class="camera-container">
+            <img id="camera-feed" />
+            <!-- Rule of Thirds Grid -->
+            <div class="grid-overlay" id="grid-overlay">
+                <div class="grid-line grid-h" style="top: 33.33%"></div>
+                <div class="grid-line grid-h" style="top: 66.66%"></div>
+                <div class="grid-line grid-v" style="left: 33.33%"></div>
+                <div class="grid-line grid-v" style="left: 66.66%"></div>
+            </div>
+            <div class="overlay-ui">
+                <div class="toast" id="toast">Photo saved!</div>
+            </div>
+        </main>
+
+        <!-- Bottom Controls -->
+        <footer class="bottom-controls">
+            <button class="icon-button" id="gallery-btn">
+                <span class="material-symbols-outlined">photo_library</span>
+            </button>
+            
+            <div class="capture-container">
+                <button class="fab capture-btn" id="capture-btn">
+                    <div class="inner-circle" id="capture-inner"></div>
+                </button>
+                <div class="mode-toggle" id="mode-toggle-container">
+                    <div class="mode-slider" id="mode-slider"></div>
+                    <button class="mode-btn active" id="mode-photo">Photo</button>
+                    <button class="mode-btn" id="mode-video">Video</button>
+                </div>
+            </div>
+
+            <!-- Spacer to balance the layout -->
+            <div style="width: 48px;"></div>
+        </footer>
+
+        <!-- Gallery Panel -->
+        <div class="panel-overlay" id="gallery-panel">
+            <header class="panel-header">
+                <button class="icon-button panel-back-btn" id="gallery-close-btn">
+                    <span class="material-symbols-outlined">arrow_back</span>
+                </button>
+                <h2 class="panel-title">Gallery</h2>
+                <div style="width: 48px;"></div>
+            </header>
+            <div class="gallery-grid" id="gallery-grid"></div>
+            <div class="gallery-empty" id="gallery-empty">
+                <span class="material-symbols-outlined" style="font-size: 72px; opacity: 0.3;">photo_library</span>
+                <p>No photos or videos yet</p>
+                <p class="gallery-empty-sub">Your captures will appear here</p>
+            </div>
+        </div>
+
+        <!-- Settings Panel -->
+        <div class="panel-overlay" id="settings-panel">
+            <header class="panel-header">
+                <button class="icon-button panel-back-btn" id="settings-close-btn">
+                    <span class="material-symbols-outlined">arrow_back</span>
+                </button>
+                <h2 class="panel-title">Settings</h2>
+                <div style="width: 48px;"></div>
+            </header>
+            <div class="settings-content">
+                <div class="settings-group">
+                    <h3 class="settings-group-title">Camera</h3>
+                    <div class="settings-item">
+                        <div class="settings-item-text">
+                            <span class="settings-label">Mirror preview</span>
+                            <span class="settings-desc">Flip the camera horizontally</span>
+                        </div>
+                        <label class="switch" for="mirror-toggle">
+                            <input type="checkbox" id="mirror-toggle" checked>
+                            <span class="switch-track">
+                                <span class="switch-thumb"></span>
+                            </span>
+                        </label>
+                    </div>
+                    <div class="settings-item">
+                        <div class="settings-item-text">
+                            <span class="settings-label">Grid overlay</span>
+                            <span class="settings-desc">Show rule of thirds guide</span>
+                        </div>
+                        <label class="switch" for="grid-toggle">
+                            <input type="checkbox" id="grid-toggle">
+                            <span class="switch-track">
+                                <span class="switch-thumb"></span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+                <div class="settings-group">
+                    <h3 class="settings-group-title">Storage</h3>
+                    <div class="settings-item">
+                        <div class="settings-item-text">
+                            <span class="settings-label">Photos</span>
+                            <span class="settings-desc">~/Pictures/Arcamera</span>
+                        </div>
+                        <span class="material-symbols-outlined settings-icon">folder</span>
+                    </div>
+                    <div class="settings-item">
+                        <div class="settings-item-text">
+                            <span class="settings-label">Videos</span>
+                            <span class="settings-desc">~/Videos/Arcamera</span>
+                        </div>
+                        <span class="material-symbols-outlined settings-icon">folder</span>
+                    </div>
+                </div>
+                <div class="settings-group">
+                    <h3 class="settings-group-title">About</h3>
+                    <div class="settings-item">
+                        <div class="settings-item-text">
+                            <span class="settings-label">Arcamera</span>
+                            <span class="settings-desc">Version 0.1.0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lightbox -->
+        <div class="lightbox" id="lightbox">
+            <div class="lightbox-header">
+                <button class="icon-button" id="lightbox-close">
+                    <span class="material-symbols-outlined">arrow_back</span>
+                </button>
+                <span class="lightbox-title" id="lightbox-title"></span>
+                <div class="lightbox-actions">
+                    <button class="icon-button" id="lightbox-open-ext" title="Open externally">
+                        <span class="material-symbols-outlined">open_in_new</span>
+                    </button>
+                    <button class="icon-button" id="lightbox-delete" title="Delete">
+                        <span class="material-symbols-outlined">delete</span>
+                    </button>
+                </div>
+            </div>
+            <div class="lightbox-body">
+                <img id="lightbox-image" />
+            </div>
+        </div>
+    </div>
+    
+    <script src="main.js"></script>
+</body>
+</html>
