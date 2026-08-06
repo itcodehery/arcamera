@@ -14,8 +14,8 @@ use state::AppState;
 fn main() {
     let app_state = Arc::new(AppState {
         is_recording: AtomicBool::new(false),
-        recorded_frames: Mutex::new(Vec::new()),
         recording_start: Mutex::new(None),
+        video_recorder: Mutex::new(None),
     });
 
     tauri::Builder::default()

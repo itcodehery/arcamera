@@ -47,7 +47,8 @@ pub fn save_photo(data_url: String) -> Result<String, String> {
 
 #[tauri::command]
 pub fn start_recording(state: State<'_, Arc<AppState>>) -> Result<(), String> {
-    state.recorded_frames.lock().unwrap().clear();
+    let recorder = video::VideoRecorder::start(30)?; // Target 30 fps
+    *state.video_recorder.lock().unwrap() = Some(recorder);
     *state.recording_start.lock().unwrap() = Some(Instant::now());
     state.is_recording.store(true, Ordering::Release);
     Ok(())
@@ -56,22 +57,14 @@ pub fn start_recording(state: State<'_, Arc<AppState>>) -> Result<(), String> {
 #[tauri::command]
 pub fn stop_recording(state: State<'_, Arc<AppState>>) -> Result<String, String> {
     state.is_recording.store(false, Ordering::Release);
-
-    let frames: Vec<Vec<u8>> = std::mem::take(&mut *state.recorded_frames.lock().unwrap());
-    let start = state.recording_start.lock().unwrap().take();
-
-    if frames.is_empty() {
-        return Err("No frames were recorded".to_string());
+    state.recording_start.lock().unwrap().take();
+    
+    let recorder = state.video_recorder.lock().unwrap().take();
+    if let Some(recorder) = recorder {
+        recorder.stop()
+    } else {
+        Err("No recording in progress".to_string())
     }
-
-    // Calculate actual fps from elapsed time
-    let duration = start
-        .map(|s| s.elapsed())
-        .unwrap_or(std::time::Duration::from_secs(1));
-    let fps = (frames.len() as f64 / duration.as_secs_f64()).round() as u32;
-    let fps = fps.max(1).min(60);
-
-    video::save_video_ffmpeg(&frames, fps)
 }
 
 #[tauri::command]

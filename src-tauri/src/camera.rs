@@ -200,10 +200,12 @@ pub fn start_camera_thread(app: AppHandle, state: Arc<AppState>) {
                         }
                     };
 
-                    // Buffer frames while recording
+                    // Stream frames directly to ffmpeg while recording
                     if state.is_recording.load(Ordering::Relaxed) {
-                        if let Ok(mut frames) = state.recorded_frames.lock() {
-                            frames.push(jpeg_bytes.clone());
+                        if let Ok(guard) = state.video_recorder.lock() {
+                            if let Some(recorder) = guard.as_ref() {
+                                recorder.write_frame(jpeg_bytes.clone());
+                            }
                         }
                     }
 
