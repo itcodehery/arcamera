@@ -17,6 +17,8 @@ base64 = "0.22"
 chrono = "0.4"
 nokhwa = { version = "0.10.11", features = ["input-native"] }
 image = "0.25.10"
+open = "5.4.1"
+dirs = "6.0.0"
 
 [features]
 default = ["custom-protocol"]
