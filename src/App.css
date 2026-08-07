@@ -1,0 +1,125 @@
+.app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+    position: relative;
+}
+
+/* Top App Bar */
+.top-app-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent);
+    z-index: 10;
+}
+
+.title {
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: 0px;
+    color: #fff;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+
+/* Icon Buttons */
+.icon-button {
+    background: var(--md-sys-color-surface-container-high);
+    color: var(--md-sys-color-on-surface);
+    border: none;
+    border-radius: var(--md-sys-shape-corner-full);
+    width: 56px;
+    height: 56px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.icon-button:hover {
+    background: var(--md-sys-color-surface-container-highest);
+}
+
+.icon-button:active {
+    transform: scale(0.95);
+}
+
+.icon-button .material-symbols-outlined {
+    font-size: 28px;
+    color: var(--md-sys-color-on-background);
+}
+
+.icon-button.transparent-btn {
+    background: transparent;
+    width: 48px;
+    height: 48px;
+}
+.icon-button.transparent-btn:hover {
+    background: var(--md-sys-color-surface-container-high);
+}
+
+/* Toast */
+.toast {
+    position: absolute;
+    bottom: 140px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background-color: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+    padding: 12px 24px;
+    border-radius: var(--md-sys-shape-corner-medium);
+    font-size: 14px;
+    font-weight: 500;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.2, 0, 0, 1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 15;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* Panel Overlay */
+.panel-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: var(--md-sys-color-background);
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
+
+.panel-overlay.open {
+    transform: translateX(0);
+}
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    padding: 0 8px;
+    background-color: var(--md-sys-color-surface-container);
+    border-bottom: 1px solid var(--md-sys-color-surface-container-highest);
+    flex-shrink: 0;
+}
+
+.panel-title {
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--md-sys-color-on-background);
+}

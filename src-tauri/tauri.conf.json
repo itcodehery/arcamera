@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "identifier": "com.arcamera.app",
   "build": {
-    "beforeDevCommand": "",
-    "beforeBuildCommand": "",
-    "frontendDist": "../src"
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
   },
   "app": {
     "withGlobalTauri": true,
@@ -23,5 +23,10 @@
     "security": {
       "csp": null
     }
+  },
+  "bundle": {
+    "externalBin": [
+      "bin/ffmpeg"
+    ]
   }
 }

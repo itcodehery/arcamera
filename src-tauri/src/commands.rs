@@ -2,7 +2,6 @@ use std::sync::Arc;
 use std::time::Instant;
 use std::sync::atomic::Ordering;
 use tauri::State;
-use base64::{Engine as _, engine::general_purpose};
 use std::path::PathBuf;
 use std::fs;
 use chrono::Local;
@@ -12,18 +11,10 @@ use crate::video;
 use crate::gallery;
 
 #[tauri::command]
-pub fn save_photo(data_url: String) -> Result<String, String> {
-    let (data_to_decode, ext) = if data_url.starts_with("data:image/jpeg;base64,") {
-        (&data_url["data:image/jpeg;base64,".len()..], "jpg")
-    } else if data_url.starts_with("data:image/png;base64,") {
-        (&data_url["data:image/png;base64,".len()..], "png")
-    } else {
-        return Err("Invalid image format".to_string());
-    };
-
-    let image_bytes = general_purpose::STANDARD
-        .decode(data_to_decode)
-        .map_err(|e| format!("Failed to decode base64: {}", e))?;
+pub fn save_photo(state: State<'_, Arc<AppState>>) -> Result<String, String> {
+    let frame_opt = state.latest_frame.lock().unwrap().clone();
+    let image_bytes = frame_opt.ok_or_else(|| "No camera frame available yet".to_string())?;
+    let ext = "jpg";
 
     // Phase 1 cross-platform fix using dirs crate
     let pictures_dir = dirs::picture_dir()
@@ -46,8 +37,8 @@ pub fn save_photo(data_url: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn start_recording(state: State<'_, Arc<AppState>>) -> Result<(), String> {
-    let recorder = video::VideoRecorder::start(30)?; // Target 30 fps
+pub fn start_recording(app: tauri::AppHandle, state: State<'_, Arc<AppState>>) -> Result<(), String> {
+    let recorder = video::VideoRecorder::start(app, 30)?; // Target 30 fps
     *state.video_recorder.lock().unwrap() = Some(recorder);
     *state.recording_start.lock().unwrap() = Some(Instant::now());
     state.is_recording.store(true, Ordering::Release);

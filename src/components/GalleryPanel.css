@@ -1,0 +1,101 @@
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    padding: 2px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.gallery-item {
+    position: relative;
+    aspect-ratio: 1;
+    overflow: hidden;
+    cursor: pointer;
+    background-color: var(--md-sys-color-surface-container);
+}
+
+.gallery-item::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: transparent;
+    transition: background 0.15s ease;
+}
+
+.gallery-item:hover::after {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.gallery-item:active::after {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.gallery-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.gallery-thumb.loaded {
+    opacity: 1;
+}
+
+.gallery-item.loading {
+    background: linear-gradient(
+        110deg,
+        var(--md-sys-color-surface-container) 30%,
+        var(--md-sys-color-surface-container-high) 50%,
+        var(--md-sys-color-surface-container) 70%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.video-badge {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.65);
+    border-radius: var(--md-sys-shape-corner-small);
+    padding: 2px 6px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    z-index: 2;
+    backdrop-filter: blur(4px);
+}
+
+.video-badge .material-symbols-outlined {
+    font-size: 18px;
+    color: #fff;
+}
+
+.gallery-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 12px;
+    color: var(--md-sys-color-on-background);
+    opacity: 0.6;
+}
+
+.gallery-empty p {
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.gallery-empty-sub {
+    font-size: 13px !important;
+    font-weight: 400 !important;
+    opacity: 0.7;
+}

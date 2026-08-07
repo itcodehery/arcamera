@@ -1,10 +1,11 @@
 use std::fs;
-use std::io::Write;
 use std::path::PathBuf;
-use std::process::{Command, Stdio};
 use chrono::Local;
 use std::sync::mpsc::{channel, Sender};
 use std::thread;
+use tauri::AppHandle;
+use tauri_plugin_shell::ShellExt;
+use tauri_plugin_shell::process::CommandEvent;
 
 pub struct VideoRecorder {
     tx: Sender<Vec<u8>>,
@@ -12,7 +13,7 @@ pub struct VideoRecorder {
 }
 
 impl VideoRecorder {
-    pub fn start(fps: u32) -> Result<Self, String> {
+    pub fn start(app: AppHandle, fps: u32) -> Result<Self, String> {
         let videos_dir = dirs::video_dir()
             .unwrap_or_else(|| dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")))
             .join("Arcamera");
@@ -26,7 +27,8 @@ impl VideoRecorder {
         let filepath = videos_dir.join(format!("video_{}.mp4", timestamp));
         let filepath_str = filepath.to_string_lossy().to_string();
 
-        let mut child = Command::new("ffmpeg")
+        let command = app.shell().sidecar("ffmpeg")
+            .map_err(|e| format!("Failed to create sidecar command: {}", e))?
             .args([
                 "-y",
                 "-f", "mjpeg",
@@ -37,34 +39,34 @@ impl VideoRecorder {
                 "-preset", "ultrafast",
                 "-crf", "23",
                 &filepath_str,
-            ])
-            .stdin(Stdio::piped())
-            .stdout(Stdio::null())
-            .stderr(Stdio::piped())
-            .spawn()
-            .map_err(|e| format!("Failed to start ffmpeg (is it installed?): {}", e))?;
+            ]);
 
-        let mut stdin = child.stdin.take().ok_or("Failed to open ffmpeg stdin")?;
-        
+        let (mut rx_events, mut child) = command.spawn()
+            .map_err(|e| format!("Failed to spawn ffmpeg sidecar: {}", e))?;
+
         let (tx, rx) = channel::<Vec<u8>>();
 
         let handle = thread::spawn(move || {
-            // Write frames as they come in
             while let Ok(frame) = rx.recv() {
-                if stdin.write_all(&frame).is_err() {
+                if child.write(&frame).is_err() {
                     break;
                 }
             }
-            // stdin is dropped here, closing the pipe so ffmpeg knows input is done
-            drop(stdin);
+            
+            // Drop child to close stdin
+            drop(child);
 
-            let output = child
-                .wait_with_output()
-                .map_err(|e| format!("ffmpeg process error: {}", e))?;
+            // Wait for exit
+            let mut success = false;
+            while let Some(event) = rx_events.blocking_recv() {
+                if let CommandEvent::Terminated(payload) = event {
+                    success = payload.code == Some(0);
+                    break;
+                }
+            }
 
-            if !output.status.success() {
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                return Err(format!("ffmpeg encoding failed: {}", stderr));
+            if !success {
+                return Err("ffmpeg encoding failed".to_string());
             }
 
             Ok(filepath_str)

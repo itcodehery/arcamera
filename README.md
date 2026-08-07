@@ -1,28 +1,16 @@
-# Arcamera
+# React + Vite
 
-A lightweight, native camera application built with Rust and Tauri.
+This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
-## Features
-- **Photo Capture**: Take photos using your computer's webcam.
-- **Video Recording**: Record high-quality videos natively via FFmpeg.
-- **Gallery**: View your captured photos and videos seamlessly in an integrated grid view.
-- **Lightbox**: Full-screen preview of images with options to open externally or delete them.
-- **Settings**:
-  - Mirror preview (useful for front-facing webcams).
-  - Rule of thirds grid overlay.
-- **Fast Performance**: Raw MJPEG extraction directly from V4L2 cameras avoiding expensive full re-encodes.
+Currently, two official plugins are available:
 
-## Requirements
-- Rust & Cargo
-- Tauri prerequisites (WebKitGTK, build-essential)
-- FFmpeg (required for video recording)
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-## Development
-Run the app locally with:
-```bash
-cargo tauri dev
-```
+## React Compiler
 
-## Storage Locations
-- Photos: `~/Pictures/Arcamera`
-- Videos: `~/Videos/Arcamera`
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+
+## Expanding the Oxlint configuration
+
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.

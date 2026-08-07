@@ -1,0 +1,55 @@
+.camera-container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #000;
+    position: relative;
+    overflow: hidden;
+}
+
+#camera-feed {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.grid-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.grid-line {
+    position: absolute;
+    background-color: rgba(255, 255, 255, 0.25);
+}
+
+.grid-line.grid-h {
+    left: 0;
+    right: 0;
+    height: 1px;
+}
+
+.grid-line.grid-v {
+    top: 0;
+    bottom: 0;
+    width: 1px;
+}
+
+.flash-overlay {
+    position: absolute;
+    inset: 0;
+    background-color: white;
+    opacity: 0.8;
+    pointer-events: none;
+    z-index: 20;
+    animation: flashAnim 0.2s ease-out forwards;
+}
+
+@keyframes flashAnim {
+    from { opacity: 0.8; }
+    to { opacity: 0; }
+}

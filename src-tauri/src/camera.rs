@@ -1,8 +1,7 @@
 use std::io::Cursor;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
-use tauri::{AppHandle, Emitter};
-use base64::{Engine as _, engine::general_purpose};
+use tauri::AppHandle;
 use crate::state::AppState;
 
 /// Build the standard JPEG DHT segment containing all 4 baseline Huffman tables.
@@ -118,7 +117,7 @@ fn ensure_jpeg_dht(raw: &[u8], dht_segment: &[u8]) -> Vec<u8> {
     }
 }
 
-pub fn start_camera_thread(app: AppHandle, state: Arc<AppState>) {
+pub fn start_camera_thread(_app: AppHandle, state: Arc<AppState>) {
     std::thread::spawn(move || {
         use nokhwa::utils::{
             CameraFormat, CameraIndex, FrameFormat, RequestedFormat, RequestedFormatType, Resolution,
@@ -200,17 +199,20 @@ pub fn start_camera_thread(app: AppHandle, state: Arc<AppState>) {
                         }
                     };
 
+                    // Update latest frame
+                    *state.latest_frame.lock().unwrap() = Some(jpeg_bytes.clone());
+
+                    // Send to all connected MJPEG clients
+                    let _ = state.frame_tx.send(jpeg_bytes.clone());
+
                     // Stream frames directly to ffmpeg while recording
                     if state.is_recording.load(Ordering::Relaxed) {
                         if let Ok(guard) = state.video_recorder.lock() {
                             if let Some(recorder) = guard.as_ref() {
-                                recorder.write_frame(jpeg_bytes.clone());
+                                recorder.write_frame(jpeg_bytes);
                             }
                         }
                     }
-
-                    let b64 = general_purpose::STANDARD.encode(&jpeg_bytes);
-                    let _ = app.emit("camera-frame", b64);
                 }
                 Err(e) => {
                     eprintln!("Error capturing frame: {}", e);

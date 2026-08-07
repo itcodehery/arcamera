@@ -6,22 +6,28 @@ mod camera;
 mod video;
 mod gallery;
 mod commands;
+mod server;
 
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 use state::AppState;
 
 fn main() {
+    let (frame_tx, _) = tokio::sync::broadcast::channel(16);
     let app_state = Arc::new(AppState {
         is_recording: AtomicBool::new(false),
         recording_start: Mutex::new(None),
         video_recorder: Mutex::new(None),
+        frame_tx,
+        latest_frame: Mutex::new(None),
     });
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_shell::init())
         .manage(app_state.clone())
         .setup(move |app| {
             let handle = app.handle().clone();
+            server::start_mjpeg_server(app_state.clone());
             camera::start_camera_thread(handle, app_state.clone());
             Ok(())
         })
