@@ -3,104 +3,210 @@
     bottom: 0;
     left: 0;
     right: 0;
-    height: 160px;
-    display: flex;
-    align-items: center;
-    justify-content: space-around;
-    padding: 0 32px 32px 32px;
-    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
-    z-index: 10;
-}
-
-.capture-container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 24px;
+    padding: 0 24px 24px 24px;
+    background: linear-gradient(to top, rgba(0,0,0,0.85) 60%, transparent);
+    z-index: 10;
+    gap: 12px;
 }
 
-/* Capture FAB */
-.capture-btn {
-    width: 80px;
-    height: 80px;
+/* Info bar */
+.info-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 4px 0;
+    width: 100%;
+}
+
+.info-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: var(--md-sys-shape-corner-full);
-    background-color: transparent;
-    border: 4px solid #fff;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+.info-chip-label {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.info-chip-value {
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 600;
+    font-family: 'Roboto Mono', monospace;
+}
+
+.recording-chip {
+    background: rgba(255, 68, 68, 0.15);
+    border-color: rgba(255, 68, 68, 0.3);
+}
+
+.rec-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ff4444;
+    animation: recBlink 1s infinite;
+}
+
+@keyframes recBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* Main controls row */
+.controls-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 400px;
+}
+
+/* Gallery button */
+.gallery-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     display: flex;
     justify-content: center;
     align-items: center;
     cursor: pointer;
-    transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
+    transition: background 0.2s ease, transform 0.15s ease;
+    color: var(--md-sys-color-on-background);
+}
+
+.gallery-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.gallery-btn:active {
+    transform: scale(0.93);
+}
+
+.gallery-btn .material-symbols-outlined {
+    font-size: 24px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Capture button */
+.capture-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.capture-btn {
+    width: 72px;
+    height: 72px;
+    border-radius: var(--md-sys-shape-corner-full);
+    background-color: transparent;
+    border: 3px solid rgba(255, 255, 255, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), border-color 0.2s ease;
 }
 
 .capture-btn .inner-circle {
-    width: 64px;
-    height: 64px;
+    width: 58px;
+    height: 58px;
     border-radius: var(--md-sys-shape-corner-full);
-    background-color: var(--md-sys-color-primary);
-    transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), background-color 0.2s ease, border-radius 0.2s ease;
+    background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(220,220,220,0.9));
+    transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), background 0.2s ease, border-radius 0.2s ease;
 }
 
 .capture-btn:hover {
-    transform: scale(1.05);
+    transform: scale(1.06);
+    border-color: rgba(255, 255, 255, 1);
 }
 
 .capture-btn:active .inner-circle {
     transform: scale(0.85);
-    background-color: var(--md-sys-color-primary-container);
+    background: rgba(200, 200, 200, 0.9);
 }
 
 .recording .inner-circle {
-    transform: scale(0.5);
-    border-radius: 8px;
-    background-color: #ff5252;
+    transform: scale(0.45);
+    border-radius: 6px;
+    background: #ff4444;
 }
 
 .recording.capture-btn {
-    border-color: var(--md-sys-color-primary);
+    border-color: rgba(255, 68, 68, 0.6);
     animation: pulse 2s infinite;
 }
 
 @keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(79, 216, 235, 0.4); }
-    70% { box-shadow: 0 0 0 20px rgba(79, 216, 235, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(79, 216, 235, 0); }
+    0% { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.35); }
+    70% { box-shadow: 0 0 0 16px rgba(255, 68, 68, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0); }
 }
 
+/* Right controls */
+.controls-right {
+    display: flex;
+    align-items: center;
+}
+
+/* Mode toggle */
 .mode-toggle {
     display: flex;
-    background: rgba(25, 28, 29, 0.7);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: var(--md-sys-shape-corner-full);
     position: relative;
-    padding: 4px;
-    backdrop-filter: blur(10px);
+    padding: 3px;
 }
 
 .mode-btn {
     background: transparent;
     border: none;
-    color: var(--md-sys-color-on-background);
-    padding: 8px 24px;
+    color: rgba(255, 255, 255, 0.5);
+    padding: 8px 16px;
     border-radius: var(--md-sys-shape-corner-full);
-    font-size: 14px;
-    font-weight: 500;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--md-sys-typescale-font);
     cursor: pointer;
     z-index: 1;
-    transition: color 0.3s ease;
-    opacity: 0.7;
+    transition: color 0.25s ease;
+    letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.mode-icon {
+    font-size: 18px;
+    pointer-events: none;
 }
 
 .mode-btn.active {
     color: #000;
-    opacity: 1;
 }
 
 .mode-slider {
     position: absolute;
-    top: 4px;
-    bottom: 4px;
+    top: 3px;
+    bottom: 3px;
     width: 50%;
-    background-color: var(--md-sys-color-primary);
+    background-color: rgba(255, 255, 255, 0.9);
     border-radius: var(--md-sys-shape-corner-full);
     z-index: 0;
     transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);

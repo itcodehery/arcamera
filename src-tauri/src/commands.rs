@@ -4,6 +4,7 @@ use std::sync::atomic::Ordering;
 use tauri::State;
 use std::path::PathBuf;
 use std::fs;
+use std::io::Cursor;
 use chrono::Local;
 
 use crate::state::AppState;
@@ -11,10 +12,15 @@ use crate::video;
 use crate::gallery;
 
 #[tauri::command]
-pub fn save_photo(state: State<'_, Arc<AppState>>) -> Result<String, String> {
+pub fn save_photo(state: State<'_, Arc<AppState>>, format: Option<String>) -> Result<String, String> {
     let frame_opt = state.latest_frame.lock().unwrap().clone();
     let image_bytes = frame_opt.ok_or_else(|| "No camera frame available yet".to_string())?;
-    let ext = "jpg";
+    
+    let fmt = format.unwrap_or_else(|| "jpg".to_string()).to_lowercase();
+    let ext = match fmt.as_str() {
+        "png" => "png",
+        _ => "jpg",
+    };
 
     // Phase 1 cross-platform fix using dirs crate
     let pictures_dir = dirs::picture_dir()
@@ -30,15 +36,28 @@ pub fn save_photo(state: State<'_, Arc<AppState>>) -> Result<String, String> {
     let filename = format!("photo_{}.{}", timestamp, ext);
     let filepath = pictures_dir.join(filename);
 
-    fs::write(&filepath, image_bytes)
-        .map_err(|e| format!("Failed to save image: {}", e))?;
+    if ext == "png" {
+        // Decode JPEG frame to RGB, then re-encode as PNG
+        let img = image::load_from_memory_with_format(&image_bytes, image::ImageFormat::Jpeg)
+            .map_err(|e| format!("Failed to decode JPEG frame: {}", e))?;
+        let mut png_buf = Vec::new();
+        let mut cursor = Cursor::new(&mut png_buf);
+        img.write_to(&mut cursor, image::ImageFormat::Png)
+            .map_err(|e| format!("Failed to encode PNG: {}", e))?;
+        fs::write(&filepath, png_buf)
+            .map_err(|e| format!("Failed to save image: {}", e))?;
+    } else {
+        fs::write(&filepath, image_bytes)
+            .map_err(|e| format!("Failed to save image: {}", e))?;
+    }
 
     Ok(filepath.to_string_lossy().to_string())
 }
 
 #[tauri::command]
-pub fn start_recording(app: tauri::AppHandle, state: State<'_, Arc<AppState>>) -> Result<(), String> {
-    let recorder = video::VideoRecorder::start(app, 30)?; // Target 30 fps
+pub fn start_recording(app: tauri::AppHandle, state: State<'_, Arc<AppState>>, target_fps: Option<u32>) -> Result<(), String> {
+    let fps = target_fps.unwrap_or(30);
+    let recorder = video::VideoRecorder::start(app, fps)?;
     *state.video_recorder.lock().unwrap() = Some(recorder);
     *state.recording_start.lock().unwrap() = Some(Instant::now());
     state.is_recording.store(true, Ordering::Release);

@@ -1,7 +1,7 @@
 use std::sync::atomic::AtomicBool;
 use std::sync::Mutex;
 use std::time::Instant;
-use tokio::sync::broadcast::Sender;
+use tokio::sync::watch::Sender;
 use crate::video::VideoRecorder;
 
 pub struct AppState {

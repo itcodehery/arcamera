@@ -13,7 +13,7 @@ use std::sync::{Arc, Mutex};
 use state::AppState;
 
 fn main() {
-    let (frame_tx, _) = tokio::sync::broadcast::channel(16);
+    let (frame_tx, _) = tokio::sync::watch::channel(Vec::new());
     let app_state = Arc::new(AppState {
         is_recording: AtomicBool::new(false),
         recording_start: Mutex::new(None),

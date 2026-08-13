@@ -1,52 +1,95 @@
 import './CameraView.css';
 import { useEffect, useRef, useState } from 'react';
 
-export default function CameraView({ mirror, grid }) {
+const ASPECT_MAP = {
+    '4:3': 4 / 3,
+    '1:1': 1,
+    '16:9': 16 / 9,
+};
+
+export default function CameraView({ mirror, grid, aspectRatio, flashEnabled }) {
     const imgRef = useRef(null);
     const [flash, setFlash] = useState(false);
 
     useEffect(() => {
-        // Simple trick to bypass cache if image stream gets stuck
-        if (imgRef.current) {
-            imgRef.current.onerror = () => {
-                setTimeout(() => {
+        let active = true;
+        let lastUrl = null;
+
+        const updateFrame = async () => {
+            if (!active) return;
+            try {
+                const response = await fetch("http://127.0.0.1:49283/frame");
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    
                     if (imgRef.current) {
-                        imgRef.current.src = "http://127.0.0.1:49283/stream?" + new Date().getTime();
+                        imgRef.current.src = url;
                     }
-                }, 1000);
-            };
-        }
+                    
+                    // Revoke the old URL *after* assigning the new one to prevent flickering
+                    if (lastUrl) {
+                        URL.revokeObjectURL(lastUrl);
+                    }
+                    lastUrl = url;
+                }
+            } catch (err) {
+                // Ignore fetch errors, likely just the server restarting
+            }
+            
+            // Loop instantly for 30fps
+            if (active) {
+                requestAnimationFrame(updateFrame);
+            }
+        };
+
+        // Start the loop
+        updateFrame();
         
         const handleFlash = () => {
-            setFlash(true);
-            setTimeout(() => setFlash(false), 200);
+            if (flashEnabled) {
+                setFlash(true);
+                setTimeout(() => setFlash(false), 3000);
+            }
         };
         
         window.addEventListener('arcamera-flash', handleFlash);
-        return () => window.removeEventListener('arcamera-flash', handleFlash);
-    }, []);
+        return () => {
+            active = false;
+            if (lastUrl) URL.revokeObjectURL(lastUrl);
+            window.removeEventListener('arcamera-flash', handleFlash);
+        };
+    }, [flashEnabled]);
+
+    const ratio = ASPECT_MAP[aspectRatio] || 4 / 3;
+
+    // Use max-width to constrain the viewport shape based on aspect ratio
+    const containerStyle = {
+        maxWidth: `calc((100vh - 280px) * ${ratio})`,
+    };
 
     return (
-        <main className="camera-container">
-            <img 
-                ref={imgRef}
-                id="camera-feed" 
-                src="http://127.0.0.1:49283/stream" 
-                style={{ transform: mirror ? 'scaleX(-1)' : 'none' }}
-                alt="Camera Feed"
-            />
-            {grid && (
-                <div className="grid-overlay" style={{ display: 'block' }}>
-                    <div className="grid-line grid-h" style={{ top: '33.33%' }}></div>
-                    <div className="grid-line grid-h" style={{ top: '66.66%' }}></div>
-                    <div className="grid-line grid-v" style={{ left: '33.33%' }}></div>
-                    <div className="grid-line grid-v" style={{ left: '66.66%' }}></div>
-                </div>
-            )}
-            
-            {flash && (
-                <div className="flash-overlay"></div>
-            )}
-        </main>
+        <div className="camera-wrapper">
+            <div className="camera-container" style={containerStyle}>
+                <img 
+                    ref={imgRef}
+                    id="camera-feed" 
+                    style={{ transform: mirror ? 'translate(-50%, -50%) scaleX(-1)' : 'translate(-50%, -50%)' }}
+                    alt="Camera Feed"
+                />
+                {grid && (
+                    <div className="grid-overlay" style={{ display: 'block' }}>
+                        <div className="grid-line grid-h" style={{ top: '33.33%' }}></div>
+                        <div className="grid-line grid-h" style={{ top: '66.66%' }}></div>
+                        <div className="grid-line grid-v" style={{ left: '33.33%' }}></div>
+                        <div className="grid-line grid-v" style={{ left: '66.66%' }}></div>
+                    </div>
+                )}
+                
+                {flash && (
+                    <div className="flash-overlay"></div>
+                )}
+            </div>
+        </div>
     );
 }
