@@ -12,7 +12,7 @@ use crate::video;
 use crate::gallery;
 
 #[tauri::command]
-pub fn save_photo(state: State<'_, Arc<AppState>>, format: Option<String>) -> Result<String, String> {
+pub fn save_photo(state: State<'_, Arc<AppState>>, format: Option<String>, mirror_output: Option<bool>) -> Result<String, String> {
     let frame_opt = state.latest_frame.lock().unwrap().clone();
     let image_bytes = frame_opt.ok_or_else(|| "No camera frame available yet".to_string())?;
     
@@ -21,6 +21,7 @@ pub fn save_photo(state: State<'_, Arc<AppState>>, format: Option<String>) -> Re
         "png" => "png",
         _ => "jpg",
     };
+    let should_mirror = mirror_output.unwrap_or(false);
 
     // Phase 1 cross-platform fix using dirs crate
     let pictures_dir = dirs::picture_dir()
@@ -36,17 +37,26 @@ pub fn save_photo(state: State<'_, Arc<AppState>>, format: Option<String>) -> Re
     let filename = format!("photo_{}.{}", timestamp, ext);
     let filepath = pictures_dir.join(filename);
 
-    if ext == "png" {
-        // Decode JPEG frame to RGB, then re-encode as PNG
-        let img = image::load_from_memory_with_format(&image_bytes, image::ImageFormat::Jpeg)
+    if ext == "png" || should_mirror {
+        // Decode JPEG frame to RGB
+        let mut img = image::load_from_memory_with_format(&image_bytes, image::ImageFormat::Jpeg)
             .map_err(|e| format!("Failed to decode JPEG frame: {}", e))?;
-        let mut png_buf = Vec::new();
-        let mut cursor = Cursor::new(&mut png_buf);
-        img.write_to(&mut cursor, image::ImageFormat::Png)
-            .map_err(|e| format!("Failed to encode PNG: {}", e))?;
-        fs::write(&filepath, png_buf)
+            
+        if should_mirror {
+            img = img.fliph();
+        }
+            
+        let mut buf = Vec::new();
+        let mut cursor = Cursor::new(&mut buf);
+        let output_format = if ext == "png" { image::ImageFormat::Png } else { image::ImageFormat::Jpeg };
+        
+        img.write_to(&mut cursor, output_format)
+            .map_err(|e| format!("Failed to encode image: {}", e))?;
+            
+        fs::write(&filepath, buf)
             .map_err(|e| format!("Failed to save image: {}", e))?;
     } else {
+        // Fast path: just dump the raw JPEG bytes
         fs::write(&filepath, image_bytes)
             .map_err(|e| format!("Failed to save image: {}", e))?;
     }

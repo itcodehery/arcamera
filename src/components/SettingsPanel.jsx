@@ -7,6 +7,7 @@ const FPS_OPTIONS = [30, 60];
 export default function SettingsPanel({ 
     isOpen, onClose, 
     mirror, setMirror, 
+    mirrorOutput, setMirrorOutput,
     grid, setGrid,
     aspectRatio, setAspectRatio,
     fileFormat, setFileFormat,
@@ -35,6 +36,22 @@ export default function SettingsPanel({
                                 type="checkbox" 
                                 checked={mirror} 
                                 onChange={(e) => setMirror(e.target.checked)} 
+                            />
+                            <span className="switch-track">
+                                <span className="switch-thumb"></span>
+                            </span>
+                        </label>
+                    </div>
+                    <div className="settings-item">
+                        <div className="settings-item-text">
+                            <span className="settings-label">Mirror saved photo</span>
+                            <span className="settings-desc">Flip output photo horizontally</span>
+                        </div>
+                        <label className="switch">
+                            <input 
+                                type="checkbox" 
+                                checked={mirrorOutput} 
+                                onChange={(e) => setMirrorOutput(e.target.checked)} 
                             />
                             <span className="switch-track">
                                 <span className="switch-thumb"></span>

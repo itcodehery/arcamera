@@ -1,5 +1,5 @@
 import './GalleryPanel.css';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import Lightbox from './Lightbox';
 
@@ -93,19 +93,36 @@ export default function GalleryPanel({ isOpen, onClose, triggerToast }) {
 function GalleryItem({ item, onClick }) {
     const [base64, setBase64] = useState('');
     const [loading, setLoading] = useState(true);
+    const itemRef = useRef(null);
 
     useEffect(() => {
-        invoke('get_thumbnail', { path: item.path }).then(res => {
-            setBase64(res);
-            setLoading(false);
-        }).catch(e => {
-            console.error('Thumbnail failed', e);
-            setLoading(false);
-        });
-    }, [item.path]);
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && loading && !base64) {
+                    invoke('get_thumbnail', { path: item.path })
+                        .then(res => {
+                            setBase64(res);
+                            setLoading(false);
+                        })
+                        .catch(e => {
+                            console.error('Thumbnail failed', e);
+                            setLoading(false);
+                        });
+                    observer.disconnect();
+                }
+            },
+            { rootMargin: '50px' }
+        );
+
+        if (itemRef.current) {
+            observer.observe(itemRef.current);
+        }
+
+        return () => observer.disconnect();
+    }, [item.path, loading, base64]);
 
     return (
-        <div className={`gallery-item ${loading ? 'loading' : ''}`} onClick={onClick}>
+        <div ref={itemRef} className={`gallery-item ${loading ? 'loading' : ''}`} onClick={onClick}>
             {base64 && <img className="gallery-thumb loaded" src={`data:image/jpeg;base64,${base64}`} alt={item.filename} />}
             {item.is_video && (
                 <div className="video-badge">

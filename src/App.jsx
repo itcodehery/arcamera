@@ -10,6 +10,7 @@ import GalleryPanel from './components/GalleryPanel'
 const ASPECT_RATIOS = ['4:3', '1:1', '16:9'];
 const FILE_FORMATS = ['JPG', 'PNG'];
 const FPS_OPTIONS = [30, 60];
+const BURST_OPTIONS = [1, 3, 5, 10];
 
 function App() {
   const [toastMessage, setToastMessage] = useState('');
@@ -19,6 +20,7 @@ function App() {
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   
   const [mirror, setMirror] = useState(() => localStorage.getItem('arcamera-mirror') !== 'false');
+  const [mirrorOutput, setMirrorOutput] = useState(() => localStorage.getItem('arcamera-mirror-output') === 'true');
   const [grid, setGrid] = useState(() => localStorage.getItem('arcamera-grid') === 'true');
   
   const [mode, setMode] = useState('photo');
@@ -29,13 +31,16 @@ function App() {
   const [fileFormat, setFileFormat] = useState(() => localStorage.getItem('arcamera-format') || 'JPG');
   const [fps, setFps] = useState(() => parseInt(localStorage.getItem('arcamera-fps')) || 30);
   const [flashEnabled, setFlashEnabled] = useState(() => localStorage.getItem('arcamera-flash') === 'true');
+  const [burstCount, setBurstCount] = useState(() => parseInt(localStorage.getItem('arcamera-burst')) || 1);
 
   useEffect(() => { localStorage.setItem('arcamera-mirror', mirror); }, [mirror]);
+  useEffect(() => { localStorage.setItem('arcamera-mirror-output', mirrorOutput); }, [mirrorOutput]);
   useEffect(() => { localStorage.setItem('arcamera-grid', grid); }, [grid]);
   useEffect(() => { localStorage.setItem('arcamera-aspect', aspectRatio); }, [aspectRatio]);
   useEffect(() => { localStorage.setItem('arcamera-format', fileFormat); }, [fileFormat]);
   useEffect(() => { localStorage.setItem('arcamera-fps', fps); }, [fps]);
   useEffect(() => { localStorage.setItem('arcamera-flash', flashEnabled); }, [flashEnabled]);
+  useEffect(() => { localStorage.setItem('arcamera-burst', burstCount); }, [burstCount]);
 
   const cycleAspectRatio = () => {
     const idx = ASPECT_RATIOS.indexOf(aspectRatio);
@@ -56,6 +61,13 @@ function App() {
     const next = FPS_OPTIONS[(idx + 1) % FPS_OPTIONS.length];
     setFps(next);
     triggerToast(`FPS: ${next}`);
+  };
+
+  const cycleBurst = () => {
+    const idx = BURST_OPTIONS.indexOf(burstCount);
+    const next = BURST_OPTIONS[(idx + 1) % BURST_OPTIONS.length];
+    setBurstCount(next);
+    triggerToast(next > 1 ? `Burst: ${next} shots` : 'Burst: Off');
   };
 
   let toastTimer;
@@ -79,9 +91,16 @@ function App() {
           </button>
           <span className="separator">|</span>
           {mode === 'photo' ? (
-            <button className="top-bar-toggle" onClick={cycleFileFormat}>
-              {fileFormat}
-            </button>
+            <>
+              <button className="top-bar-toggle" onClick={cycleBurst}>
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>burst_mode</span>
+                {burstCount > 1 ? `x${burstCount}` : 'Off'}
+              </button>
+              <span className="separator">|</span>
+              <button className="top-bar-toggle" onClick={cycleFileFormat}>
+                {fileFormat}
+              </button>
+            </>
           ) : (
             <button className="top-bar-toggle" onClick={cycleFps}>
               {fps} FPS
@@ -131,6 +150,8 @@ function App() {
         fileFormat={fileFormat}
         fps={fps}
         flashEnabled={flashEnabled}
+        mirrorOutput={mirrorOutput}
+        burstCount={burstCount}
       />
 
       <SettingsPanel 
@@ -138,6 +159,8 @@ function App() {
         onClose={() => setIsSettingsOpen(false)}
         mirror={mirror}
         setMirror={setMirror}
+        mirrorOutput={mirrorOutput}
+        setMirrorOutput={setMirrorOutput}
         grid={grid}
         setGrid={setGrid}
         aspectRatio={aspectRatio}

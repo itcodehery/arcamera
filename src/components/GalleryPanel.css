@@ -1,8 +1,9 @@
 .gallery-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 2px;
-    padding: 2px;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    align-content: start;
+    gap: 8px;
+    padding: 16px;
     overflow-y: auto;
     flex: 1;
 }
@@ -11,6 +12,7 @@
     position: relative;
     aspect-ratio: 1;
     overflow: hidden;
+    border-radius: 8px;
     cursor: pointer;
     background-color: var(--md-sys-color-surface-container);
 }

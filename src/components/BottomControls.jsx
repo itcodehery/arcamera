@@ -2,7 +2,7 @@ import './BottomControls.css';
 import { useState, useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 
-export default function BottomControls({ onGalleryClick, mode, setMode, isRecording, setIsRecording, triggerToast, fileFormat, fps, flashEnabled }) {
+export default function BottomControls({ onGalleryClick, mode, setMode, isRecording, setIsRecording, triggerToast, fileFormat, fps, flashEnabled, mirrorOutput, burstCount }) {
     const [recordingTime, setRecordingTime] = useState(0);
     const timerRef = useRef(null);
 
@@ -36,8 +36,14 @@ export default function BottomControls({ onGalleryClick, mode, setMode, isRecord
                 window.dispatchEvent(new Event('arcamera-flash'));
             }
             try {
-                await invoke('save_photo', { format: fileFormat.toLowerCase() });
-                triggerToast('Photo saved!');
+                for (let i = 0; i < (burstCount || 1); i++) {
+                    await invoke('save_photo', { format: fileFormat.toLowerCase(), mirrorOutput });
+                    if (burstCount > 1 && i < burstCount - 1) {
+                        // Wait 100ms between bursts (approx 10fps)
+                        await new Promise(r => setTimeout(r, 100));
+                    }
+                }
+                triggerToast(burstCount > 1 ? `Saved ${burstCount} photos!` : 'Photo saved!');
             } catch (error) {
                 console.error('Save failed:', error);
                 triggerToast('Failed to save: ' + error);
