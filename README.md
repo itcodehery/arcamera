@@ -1,6 +1,6 @@
 # Arcamera
 
-Arcamera is a fast, modernized, cross-platform camera application built with Tauri v2, Rust, and React+Vite. It features low-latency MJPEG video streaming, high-quality photo capture, video recording via bundled FFmpeg, and a gorgeous Material 3 Expressive UI.
+Arcamera is a fast, modernized, cross-platform camera application for Linux built with Tauri v2, Rust, and React+Vite. It features low-latency MJPEG video streaming, high-quality photo capture, video recording via bundled FFmpeg, and a gorgeous Material 3 Expressive UI.
 
 ## Features
 
