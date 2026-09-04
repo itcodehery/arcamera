@@ -8,7 +8,7 @@ mod gallery;
 mod commands;
 mod server;
 
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, AtomicU16};
 use std::sync::{Arc, Mutex};
 use state::AppState;
 
@@ -20,6 +20,7 @@ fn main() {
         video_recorder: Mutex::new(None),
         frame_tx,
         latest_frame: Mutex::new(None),
+        server_port: AtomicU16::new(49283),
     });
 
     tauri::Builder::default()
@@ -39,6 +40,7 @@ fn main() {
             commands::get_thumbnail,
             commands::delete_gallery_item,
             commands::open_file_externally,
+            commands::get_stream_port,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

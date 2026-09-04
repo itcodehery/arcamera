@@ -1,8 +1,11 @@
 use std::fs;
 use std::path::PathBuf;
+use std::io::Cursor;
 use chrono::Local;
-use std::process::{Command, Stdio};
 use base64::{Engine as _, engine::general_purpose};
+use tauri::AppHandle;
+use tauri_plugin_shell::ShellExt;
+use tauri_plugin_shell::process::CommandEvent;
 
 #[derive(serde::Serialize)]
 pub struct GalleryItem {
@@ -16,7 +19,6 @@ pub struct GalleryItem {
 pub fn list_items() -> Result<Vec<GalleryItem>, String> {
     let mut items = Vec::new();
 
-    // Phase 1 cross-platform fix using dirs crate
     let pictures_dir = dirs::picture_dir()
         .unwrap_or_else(|| dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")))
         .join("Arcamera");
@@ -88,7 +90,27 @@ pub fn list_items() -> Result<Vec<GalleryItem>, String> {
     Ok(items)
 }
 
-pub fn get_thumbnail(path: &str) -> Result<String, String> {
+fn get_cache_path(source_path: &str) -> Option<PathBuf> {
+    let p = PathBuf::from(source_path);
+    let parent = p.parent()?;
+    let stem = p.file_stem()?.to_str()?;
+    let cache_dir = parent.join(".thumbnails");
+    if !cache_dir.exists() {
+        let _ = fs::create_dir_all(&cache_dir);
+    }
+    Some(cache_dir.join(format!("{}_thumb.jpg", stem)))
+}
+
+pub async fn get_thumbnail(app: &AppHandle, path: &str) -> Result<String, String> {
+    let cache_path = get_cache_path(path);
+    if let Some(ref thumb) = cache_path {
+        if thumb.exists() {
+            if let Ok(bytes) = fs::read(thumb) {
+                return Ok(general_purpose::STANDARD.encode(&bytes));
+            }
+        }
+    }
+
     let path_buf = PathBuf::from(path);
     let ext = path_buf
         .extension()
@@ -99,34 +121,65 @@ pub fn get_thumbnail(path: &str) -> Result<String, String> {
     let is_video = matches!(ext.as_str(), "mp4" | "webm" | "mkv" | "avi");
 
     if is_video {
-        // Extract first frame with ffmpeg
-        let output = Command::new("ffmpeg")
+        let command = app.shell().sidecar("ffmpeg")
+            .map_err(|e| format!("Failed to create sidecar command: {}", e))?
             .args([
-                "-i", path, "-vframes", "1", "-vf", "scale=400:-1", "-f", "mjpeg",
-                "-q:v", "5", "pipe:1",
-            ])
-            .stdout(Stdio::piped())
-            .stderr(Stdio::null())
-            .output()
-            .map_err(|e| format!("Failed to extract video thumbnail: {}", e))?;
+                "-i", path,
+                "-vframes", "1",
+                "-vf", "scale=320:-1",
+                "-f", "mjpeg",
+                "-q:v", "5",
+                "pipe:1",
+            ]);
 
-        if output.stdout.is_empty() {
-            return Err("Failed to extract video frame".to_string());
+        let (mut rx, _child) = command.spawn()
+            .map_err(|e| format!("Failed to spawn ffmpeg sidecar: {}", e))?;
+
+        let mut stdout_data = Vec::new();
+        while let Some(event) = rx.recv().await {
+            match event {
+                CommandEvent::Stdout(bytes) => stdout_data.extend_from_slice(&bytes),
+                CommandEvent::Error(err) => eprintln!("ffmpeg thumbnail error: {}", err),
+                CommandEvent::Terminated(_) => break,
+                _ => {}
+            }
         }
-        Ok(general_purpose::STANDARD.encode(&output.stdout))
+
+        if stdout_data.is_empty() {
+            return Err("Failed to extract video thumbnail using sidecar".to_string());
+        }
+
+        if let Some(ref cp) = cache_path {
+            let _ = fs::write(cp, &stdout_data);
+        }
+
+        Ok(general_purpose::STANDARD.encode(&stdout_data))
     } else {
-        let bytes =
-            fs::read(&path).map_err(|e| format!("Failed to read file: {}", e))?;
-        Ok(general_purpose::STANDARD.encode(&bytes))
+        let img = image::open(path).map_err(|e| format!("Failed to open image: {}", e))?;
+        let thumb = img.thumbnail(320, 320);
+        let mut buf = Vec::new();
+        let mut cursor = Cursor::new(&mut buf);
+        thumb.write_to(&mut cursor, image::ImageFormat::Jpeg)
+            .map_err(|e| format!("Failed to encode thumbnail: {}", e))?;
+
+        if let Some(ref cp) = cache_path {
+            let _ = fs::write(cp, &buf);
+        }
+
+        Ok(general_purpose::STANDARD.encode(&buf))
     }
 }
 
 pub fn delete_item(path: &str) -> Result<(), String> {
+    if let Some(cache_path) = get_cache_path(path) {
+        if cache_path.exists() {
+            let _ = fs::remove_file(cache_path);
+        }
+    }
     fs::remove_file(path).map_err(|e| format!("Failed to delete file: {}", e))
 }
 
 pub fn open_externally(path: &str) -> Result<(), String> {
-    // Phase 1 cross-platform fix using open crate
     open::that(path).map_err(|e| format!("Failed to open file: {}", e))?;
     Ok(())
 }

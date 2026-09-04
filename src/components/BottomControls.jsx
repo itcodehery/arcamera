@@ -2,7 +2,7 @@ import './BottomControls.css';
 import { useState, useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 
-export default function BottomControls({ onGalleryClick, mode, setMode, isRecording, setIsRecording, triggerToast, fileFormat, fps, flashEnabled, mirrorOutput, burstCount }) {
+export default function BottomControls({ onGalleryClick, mode, setMode, isRecording, setIsRecording, triggerToast, fileFormat, fps, flashEnabled, mirrorOutput, burstCount, aspectRatio }) {
     const [recordingTime, setRecordingTime] = useState(0);
     const timerRef = useRef(null);
 
@@ -37,7 +37,11 @@ export default function BottomControls({ onGalleryClick, mode, setMode, isRecord
             }
             try {
                 for (let i = 0; i < (burstCount || 1); i++) {
-                    await invoke('save_photo', { format: fileFormat.toLowerCase(), mirrorOutput });
+                    await invoke('save_photo', { 
+                        format: fileFormat.toLowerCase(), 
+                        mirrorOutput,
+                        aspectRatio 
+                    });
                     if (burstCount > 1 && i < burstCount - 1) {
                         // Wait 100ms between bursts (approx 10fps)
                         await new Promise(r => setTimeout(r, 100));

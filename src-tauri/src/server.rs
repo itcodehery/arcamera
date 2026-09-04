@@ -15,9 +15,23 @@ pub fn start_mjpeg_server(state: Arc<AppState>) {
         let app = Router::new()
             .route("/stream", get(mjpeg_stream))
             .route("/frame", get(single_frame))
-            .with_state(state);
+            .with_state(state.clone());
 
-        let listener = tokio::net::TcpListener::bind("127.0.0.1:49283").await.unwrap();
+        let listener = match tokio::net::TcpListener::bind("127.0.0.1:49283").await {
+            Ok(l) => l,
+            Err(e) => {
+                eprintln!("Failed to bind to 127.0.0.1:49283 ({}). Falling back to OS-assigned port.", e);
+                tokio::net::TcpListener::bind("127.0.0.1:0")
+                    .await
+                    .expect("Failed to bind to any local port for streaming server")
+            }
+        };
+
+        if let Ok(addr) = listener.local_addr() {
+            state.server_port.store(addr.port(), std::sync::atomic::Ordering::SeqCst);
+            println!("Arcamera stream server listening at http://{}", addr);
+        }
+
         axum::serve(listener, app).await.unwrap();
     });
 }

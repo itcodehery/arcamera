@@ -12,7 +12,12 @@ use crate::video;
 use crate::gallery;
 
 #[tauri::command]
-pub fn save_photo(state: State<'_, Arc<AppState>>, format: Option<String>, mirror_output: Option<bool>) -> Result<String, String> {
+pub fn save_photo(
+    state: State<'_, Arc<AppState>>,
+    format: Option<String>,
+    mirror_output: Option<bool>,
+    aspect_ratio: Option<String>,
+) -> Result<String, String> {
     let frame_opt = state.latest_frame.lock().unwrap().clone();
     let image_bytes = frame_opt.ok_or_else(|| "No camera frame available yet".to_string())?;
     
@@ -22,6 +27,7 @@ pub fn save_photo(state: State<'_, Arc<AppState>>, format: Option<String>, mirro
         _ => "jpg",
     };
     let should_mirror = mirror_output.unwrap_or(false);
+    let ratio_str = aspect_ratio.unwrap_or_else(|| "native".to_string());
 
     // Phase 1 cross-platform fix using dirs crate
     let pictures_dir = dirs::picture_dir()
@@ -37,10 +43,35 @@ pub fn save_photo(state: State<'_, Arc<AppState>>, format: Option<String>, mirro
     let filename = format!("photo_{}.{}", timestamp, ext);
     let filepath = pictures_dir.join(filename);
 
-    if ext == "png" || should_mirror {
+    let needs_processing = ext == "png" || should_mirror || ratio_str != "native";
+
+    if needs_processing {
         // Decode JPEG frame to RGB
         let mut img = image::load_from_memory_with_format(&image_bytes, image::ImageFormat::Jpeg)
             .map_err(|e| format!("Failed to decode JPEG frame: {}", e))?;
+
+        // Apply aspect ratio crop if specified
+        let (width, height) = (img.width(), img.height());
+        let target_ratio = match ratio_str.as_str() {
+            "1:1" => Some(1.0f32),
+            "4:3" => Some(4.0 / 3.0),
+            "16:9" => Some(16.0 / 9.0),
+            _ => None,
+        };
+
+        if let Some(target) = target_ratio {
+            let current = width as f32 / height as f32;
+            let (crop_w, crop_h) = if current > target {
+                let w = (height as f32 * target).round() as u32;
+                (w, height)
+            } else {
+                let h = (width as f32 / target).round() as u32;
+                (width, h)
+            };
+            let offset_x = (width - crop_w) / 2;
+            let offset_y = (height - crop_h) / 2;
+            img = img.crop_imm(offset_x, offset_y, crop_w, crop_h);
+        }
             
         if should_mirror {
             img = img.fliph();
@@ -93,8 +124,13 @@ pub fn list_gallery_items() -> Result<Vec<gallery::GalleryItem>, String> {
 }
 
 #[tauri::command]
-pub fn get_thumbnail(path: String) -> Result<String, String> {
-    gallery::get_thumbnail(&path)
+pub async fn get_thumbnail(app: tauri::AppHandle, path: String) -> Result<String, String> {
+    gallery::get_thumbnail(&app, &path).await
+}
+
+#[tauri::command]
+pub fn get_stream_port(state: State<'_, Arc<AppState>>) -> u16 {
+    state.server_port.load(Ordering::SeqCst)
 }
 
 #[tauri::command]

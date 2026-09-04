@@ -1,4 +1,4 @@
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, AtomicU16};
 use std::sync::Mutex;
 use std::time::Instant;
 use tokio::sync::watch::Sender;
@@ -10,4 +10,5 @@ pub struct AppState {
     pub video_recorder: Mutex<Option<VideoRecorder>>,
     pub frame_tx: Sender<Vec<u8>>,
     pub latest_frame: Mutex<Option<Vec<u8>>>,
+    pub server_port: AtomicU16,
 }

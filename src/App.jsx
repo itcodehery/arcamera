@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import './index.css'
 import './App.css'
@@ -15,6 +15,7 @@ const BURST_OPTIONS = [1, 3, 5, 10];
 function App() {
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
+  const toastTimerRef = useRef(null);
   
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
@@ -41,6 +42,12 @@ function App() {
   useEffect(() => { localStorage.setItem('arcamera-fps', fps); }, [fps]);
   useEffect(() => { localStorage.setItem('arcamera-flash', flashEnabled); }, [flashEnabled]);
   useEffect(() => { localStorage.setItem('arcamera-burst', burstCount); }, [burstCount]);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
 
   const cycleAspectRatio = () => {
     const idx = ASPECT_RATIOS.indexOf(aspectRatio);
@@ -70,12 +77,13 @@ function App() {
     triggerToast(next > 1 ? `Burst: ${next} shots` : 'Burst: Off');
   };
 
-  let toastTimer;
   const triggerToast = (msg) => {
     setToastMessage(msg);
     setShowToast(true);
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => setShowToast(false), 3000);
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+    toastTimerRef.current = setTimeout(() => setShowToast(false), 3000);
   };
 
   return (
@@ -152,6 +160,7 @@ function App() {
         flashEnabled={flashEnabled}
         mirrorOutput={mirrorOutput}
         burstCount={burstCount}
+        aspectRatio={aspectRatio}
       />
 
       <SettingsPanel 

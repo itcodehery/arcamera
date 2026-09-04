@@ -1,14 +1,14 @@
 use std::fs;
 use std::path::PathBuf;
 use chrono::Local;
-use std::sync::mpsc::{channel, Sender};
+use std::sync::mpsc::{sync_channel, SyncSender, TrySendError};
 use std::thread;
 use tauri::AppHandle;
 use tauri_plugin_shell::ShellExt;
 use tauri_plugin_shell::process::CommandEvent;
 
 pub struct VideoRecorder {
-    tx: Sender<Vec<u8>>,
+    tx: SyncSender<Vec<u8>>,
     handle: thread::JoinHandle<Result<String, String>>,
 }
 
@@ -44,7 +44,7 @@ impl VideoRecorder {
         let (mut rx_events, mut child) = command.spawn()
             .map_err(|e| format!("Failed to spawn ffmpeg sidecar: {}", e))?;
 
-        let (tx, rx) = channel::<Vec<u8>>();
+        let (tx, rx) = sync_channel::<Vec<u8>>(30);
 
         let handle = thread::spawn(move || {
             while let Ok(frame) = rx.recv() {
@@ -76,7 +76,13 @@ impl VideoRecorder {
     }
 
     pub fn write_frame(&self, frame: Vec<u8>) {
-        let _ = self.tx.send(frame);
+        match self.tx.try_send(frame) {
+            Ok(_) => {}
+            Err(TrySendError::Full(_)) => {
+                eprintln!("[VideoRecorder] Frame dropped: FFmpeg encoder buffer full");
+            }
+            Err(TrySendError::Disconnected(_)) => {}
+        }
     }
     
     // Stop will consume self, drop tx, and join thread
