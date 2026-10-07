@@ -14,53 +14,14 @@ export default function CameraView({ mirror, grid, aspectRatio, flashEnabled }) 
 
     useEffect(() => {
         let active = true;
-        let lastUrl = null;
-        let port = 49283;
 
-        // Query dynamic port from backend
-        invoke('get_stream_port').then(p => {
-            if (p) port = p;
+        // Query dynamic port from backend and use the MJPEG stream directly
+        invoke('get_stream_port').then(port => {
+            if (active && imgRef.current) {
+                // Attach stream directly to the img src
+                imgRef.current.src = `http://127.0.0.1:${port}/stream`;
+            }
         }).catch(() => {});
-
-        let lastFetchTime = 0;
-        const FRAME_INTERVAL = 1000 / 30; // ~33.3ms for 30fps camera cadence
-        let animId = null;
-
-        const updateFrame = async (timestamp) => {
-            if (!active) return;
-
-            if (timestamp - lastFetchTime >= FRAME_INTERVAL) {
-                lastFetchTime = timestamp;
-                try {
-                    const response = await fetch(`http://127.0.0.1:${port}/frame`, {
-                        cache: 'no-store'
-                    });
-                    if (response.ok && active) {
-                        const blob = await response.blob();
-                        const url = URL.createObjectURL(blob);
-                        
-                        if (imgRef.current) {
-                            imgRef.current.src = url;
-                        }
-                        
-                        // Revoke the old URL *after* assigning the new one to prevent flickering
-                        if (lastUrl) {
-                            URL.revokeObjectURL(lastUrl);
-                        }
-                        lastUrl = url;
-                    }
-                } catch {
-                    // Ignore transient network errors
-                }
-            }
-            
-            if (active) {
-                animId = requestAnimationFrame(updateFrame);
-            }
-        };
-
-        // Start the loop
-        animId = requestAnimationFrame(updateFrame);
         
         const handleFlash = () => {
             if (flashEnabled) {
@@ -72,16 +33,17 @@ export default function CameraView({ mirror, grid, aspectRatio, flashEnabled }) 
         window.addEventListener('arcamera-flash', handleFlash);
         return () => {
             active = false;
-            if (animId) cancelAnimationFrame(animId);
-            if (lastUrl) URL.revokeObjectURL(lastUrl);
             window.removeEventListener('arcamera-flash', handleFlash);
         };
     }, [flashEnabled]);
 
     const ratio = ASPECT_MAP[aspectRatio] || 4 / 3;
 
-    // Use max-width to constrain the viewport shape based on aspect ratio
+    // Use max-width and aspect-ratio to perfectly constrain the viewport shape
     const containerStyle = {
+        width: '100%',
+        height: 'auto',
+        aspectRatio: ratio.toString(),
         maxWidth: `calc((100vh - 280px) * ${ratio})`,
     };
 

@@ -21,6 +21,7 @@ fn main() {
         frame_tx,
         latest_frame: Mutex::new(None),
         server_port: AtomicU16::new(49283),
+        target_fps: std::sync::atomic::AtomicU32::new(30),
     });
 
     tauri::Builder::default()
@@ -41,6 +42,7 @@ fn main() {
             commands::delete_gallery_item,
             commands::open_file_externally,
             commands::get_stream_port,
+            commands::set_camera_fps,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

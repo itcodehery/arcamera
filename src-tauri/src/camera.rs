@@ -125,98 +125,130 @@ pub fn start_camera_thread(_app: AppHandle, state: Arc<AppState>) {
         use nokhwa::Camera;
 
         let index = CameraIndex::Index(0);
+        let mut current_fps = state.target_fps.load(Ordering::Relaxed);
         let target_format =
-            CameraFormat::new(Resolution::new(1280, 720), FrameFormat::MJPEG, 30);
+            CameraFormat::new(Resolution::new(1280, 720), FrameFormat::MJPEG, current_fps);
         let requested = RequestedFormat::new::<nokhwa::pixel_format::RgbFormat>(
             RequestedFormatType::Closest(target_format),
         );
 
-        let mut camera = match Camera::new(index, requested) {
-            Ok(c) => c,
+        let mut camera_opt = match Camera::new(index.clone(), requested) {
+            Ok(c) => Some(c),
             Err(e) => {
                 eprintln!("Failed to initialize camera: {}", e);
                 return;
             }
         };
 
-        if let Err(e) = camera.open_stream() {
+        if let Err(e) = camera_opt.as_mut().unwrap().open_stream() {
             eprintln!("Failed to open camera stream: {}", e);
             return;
         }
 
-        let format = camera.camera_format();
-        let is_mjpeg = format.format() == FrameFormat::MJPEG;
+        let mut is_mjpeg = camera_opt.as_ref().unwrap().camera_format().format() == FrameFormat::MJPEG;
         println!(
             "Camera stream opened. Format: {:?}, using {} path",
-            format,
+            camera_opt.as_ref().unwrap().camera_format(),
             if is_mjpeg { "fast MJPEG" } else { "decode+encode fallback" }
         );
 
-        // Build the DHT segment once (only needed for MJPEG fast path)
-        let dht_segment = if is_mjpeg {
+        let mut dht_segment = if is_mjpeg {
             build_standard_dht_segment()
         } else {
             Vec::new()
         };
 
         loop {
-            match camera.frame() {
-                Ok(frame) => {
-                    let jpeg_bytes = if is_mjpeg {
-                        // Fast path: use raw MJPEG bytes, inject DHT if missing
-                        ensure_jpeg_dht(frame.buffer(), &dht_segment)
-                    } else {
-                        // Fallback: decode to RGB then re-encode as JPEG
-                        match frame.decode_image::<nokhwa::pixel_format::RgbFormat>() {
-                            Ok(decoded) => {
-                                let width = decoded.width();
-                                let height = decoded.height();
-                                let mut buf = Vec::with_capacity(300_000);
-                                let mut cursor = Cursor::new(&mut buf);
-                                let mut encoder =
-                                    image::codecs::jpeg::JpegEncoder::new_with_quality(
-                                        &mut cursor,
-                                        75,
-                                    );
-                                if encoder
-                                    .encode(
-                                        decoded.as_raw(),
-                                        width,
-                                        height,
-                                        image::ExtendedColorType::Rgb8,
-                                    )
-                                    .is_ok()
-                                {
-                                    buf
-                                } else {
+            let requested_fps = state.target_fps.load(Ordering::Relaxed);
+            if requested_fps != current_fps {
+                println!("Changing camera FPS to {}", requested_fps);
+                current_fps = requested_fps;
+                
+                if let Some(mut cam) = camera_opt.take() {
+                    let _ = cam.stop_stream();
+                } // cam is dropped here to free the device
+                
+                let target_format = CameraFormat::new(Resolution::new(1280, 720), FrameFormat::MJPEG, current_fps);
+                let requested = RequestedFormat::new::<nokhwa::pixel_format::RgbFormat>(
+                    RequestedFormatType::Closest(target_format),
+                );
+                
+                match Camera::new(index.clone(), requested) {
+                    Ok(mut new_camera) => {
+                        if new_camera.open_stream().is_ok() {
+                            is_mjpeg = new_camera.camera_format().format() == FrameFormat::MJPEG;
+                            dht_segment = if is_mjpeg {
+                                build_standard_dht_segment()
+                            } else {
+                                Vec::new()
+                            };
+                            camera_opt = Some(new_camera);
+                            println!("Camera stream restarted successfully.");
+                        } else {
+                            eprintln!("Failed to open new camera stream.");
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to recreate camera: {}", e);
+                    }
+                }
+            }
+
+            if let Some(cam) = camera_opt.as_mut() {
+                match cam.frame() {
+                    Ok(frame) => {
+                        let jpeg_bytes = if is_mjpeg {
+                            ensure_jpeg_dht(frame.buffer(), &dht_segment)
+                        } else {
+                            match frame.decode_image::<nokhwa::pixel_format::RgbFormat>() {
+                                Ok(decoded) => {
+                                    let width = decoded.width();
+                                    let height = decoded.height();
+                                    let mut buf = Vec::with_capacity(300_000);
+                                    let mut cursor = Cursor::new(&mut buf);
+                                    let mut encoder =
+                                        image::codecs::jpeg::JpegEncoder::new_with_quality(
+                                            &mut cursor,
+                                            75,
+                                        );
+                                    if encoder
+                                        .encode(
+                                            decoded.as_raw(),
+                                            width,
+                                            height,
+                                            image::ExtendedColorType::Rgb8,
+                                        )
+                                        .is_ok()
+                                    {
+                                        buf
+                                    } else {
+                                        continue;
+                                    }
+                                }
+                                Err(e) => {
+                                    eprintln!("Failed to decode frame: {}", e);
                                     continue;
                                 }
                             }
-                            Err(e) => {
-                                eprintln!("Failed to decode frame: {}", e);
-                                continue;
-                            }
-                        }
-                    };
+                        };
 
-                    // Update latest frame
-                    *state.latest_frame.lock().unwrap() = Some(jpeg_bytes.clone());
+                        *state.latest_frame.lock().unwrap() = Some(jpeg_bytes.clone());
+                        let _ = state.frame_tx.send(jpeg_bytes.clone());
 
-                    // Send to all connected MJPEG clients
-                    let _ = state.frame_tx.send(jpeg_bytes.clone());
-
-                    // Stream frames directly to ffmpeg while recording
-                    if state.is_recording.load(Ordering::Relaxed) {
-                        if let Ok(guard) = state.video_recorder.lock() {
-                            if let Some(recorder) = guard.as_ref() {
-                                recorder.write_frame(jpeg_bytes);
+                        if state.is_recording.load(Ordering::Relaxed) {
+                            if let Ok(guard) = state.video_recorder.lock() {
+                                if let Some(recorder) = guard.as_ref() {
+                                    recorder.write_frame(jpeg_bytes);
+                                }
                             }
                         }
                     }
+                    Err(e) => {
+                        eprintln!("Error capturing frame: {}", e);
+                    }
                 }
-                Err(e) => {
-                    eprintln!("Error capturing frame: {}", e);
-                }
+            } else {
+                std::thread::sleep(std::time::Duration::from_secs(1));
             }
         }
     });

@@ -36,17 +36,12 @@ export default function BottomControls({ onGalleryClick, mode, setMode, isRecord
                 window.dispatchEvent(new Event('arcamera-flash'));
             }
             try {
-                for (let i = 0; i < (burstCount || 1); i++) {
-                    await invoke('save_photo', { 
-                        format: fileFormat.toLowerCase(), 
-                        mirrorOutput,
-                        aspectRatio 
-                    });
-                    if (burstCount > 1 && i < burstCount - 1) {
-                        // Wait 100ms between bursts (approx 10fps)
-                        await new Promise(r => setTimeout(r, 100));
-                    }
-                }
+                await invoke('save_photo', { 
+                    format: fileFormat.toLowerCase(), 
+                    mirrorOutput,
+                    aspectRatio,
+                    burstCount: burstCount || 1
+                });
                 triggerToast(burstCount > 1 ? `Saved ${burstCount} photos!` : 'Photo saved!');
             } catch (error) {
                 console.error('Save failed:', error);

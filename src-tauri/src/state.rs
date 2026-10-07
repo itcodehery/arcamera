@@ -11,4 +11,5 @@ pub struct AppState {
     pub frame_tx: Sender<Vec<u8>>,
     pub latest_frame: Mutex<Option<Vec<u8>>>,
     pub server_port: AtomicU16,
+    pub target_fps: std::sync::atomic::AtomicU32,
 }

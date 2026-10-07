@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { getCurrentWindow } from '@tauri-apps/api/window'
+import { invoke } from '@tauri-apps/api/core'
 import './index.css'
 import './App.css'
 import CameraView from './components/CameraView'
@@ -39,7 +40,10 @@ function App() {
   useEffect(() => { localStorage.setItem('arcamera-grid', grid); }, [grid]);
   useEffect(() => { localStorage.setItem('arcamera-aspect', aspectRatio); }, [aspectRatio]);
   useEffect(() => { localStorage.setItem('arcamera-format', fileFormat); }, [fileFormat]);
-  useEffect(() => { localStorage.setItem('arcamera-fps', fps); }, [fps]);
+  useEffect(() => { 
+    localStorage.setItem('arcamera-fps', fps); 
+    invoke('set_camera_fps', { fps }).catch(console.error);
+  }, [fps]);
   useEffect(() => { localStorage.setItem('arcamera-flash', flashEnabled); }, [flashEnabled]);
   useEffect(() => { localStorage.setItem('arcamera-burst', burstCount); }, [burstCount]);
 
