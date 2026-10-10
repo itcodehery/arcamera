@@ -4,14 +4,14 @@ pkgver=0.1.0
 pkgrel=1
 pkgdesc="A high-performance Tauri-based camera application"
 arch=('x86_64')
-url="https://github.com/youruser/arcamera"
+url="https://github.com/itcodehery/arcamera"
 license=('GPL-3.0-or-later') # Update if a different license is used
 depends=('webkit2gtk-4.1' 'gtk3' 'cairo' 'gdk-pixbuf2' 'glib2' 'pango')
 makedepends=('cargo' 'nodejs' 'npm')
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz"
         "$pkgname.desktop")
-sha256sums=('SKIP'
-            'SKIP')
+sha256sums=('e2867c8bb1ed5b413e5a50725d4f3459eea5e773ab968b7f2657fb2088e47484'
+            '4ea8126f1982389627cb6a5755e132ea58ebc1a50a47208b83e6829692cf5950')
 
 build() {
     cd "$pkgname-$pkgver"
