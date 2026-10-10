@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Arcamera
+Comment=A high-performance Tauri-based camera application
+Exec=arcamera
+Icon=arcamera
+Terminal=false
+Type=Application
+Categories=Graphics;Photography;AudioVideo;Video;
+Keywords=Camera;Webcam;Photo;Video;
+StartupNotify=true
