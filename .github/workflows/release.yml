@@ -49,4 +49,4 @@ jobs:
           releaseBody: 'See the assets below to download this version and install.'
           releaseDraft: true
           prerelease: false
-          args: ''
+          args: --ignore-version-mismatches

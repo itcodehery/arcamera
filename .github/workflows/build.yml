@@ -60,3 +60,4 @@ jobs:
           releaseBody: 'Release v__VERSION__'
           releaseDraft: true
           prerelease: false
+          args: --ignore-version-mismatches
