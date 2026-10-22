@@ -28,6 +28,28 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      - name: Setup FFmpeg Sidecar (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path src-tauri/bin
+          $ffmpeg = (Get-Command ffmpeg -ErrorAction SilentlyContinue).Source
+          if ($ffmpeg) {
+            Copy-Item $ffmpeg src-tauri/bin/ffmpeg-x86_64-pc-windows-msvc.exe
+          } else {
+            Invoke-WebRequest -Uri "https://github.com/GyanD/codexffmpeg/releases/download/7.1/ffmpeg-7.1-essentials_build.zip" -OutFile ffmpeg.zip
+            Expand-Archive ffmpeg.zip -DestinationPath .
+            Copy-Item (Get-ChildItem -Path "ffmpeg-*" -Filter "ffmpeg.exe" -Recurse).FullName src-tauri/bin/ffmpeg-x86_64-pc-windows-msvc.exe
+          }
+
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
