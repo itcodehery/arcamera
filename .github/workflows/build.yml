@@ -34,7 +34,7 @@ jobs:
           node-version: 20
 
       - name: Install frontend dependencies
-        run: npm install
+        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
       - name: Setup FFmpeg Sidecar (Windows)
         if: matrix.platform == 'windows-latest'
